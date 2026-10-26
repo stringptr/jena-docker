@@ -14,20 +14,20 @@
 #   limitations under the License.
 
 
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:21-alpine
 MAINTAINER Stian Soiland-Reyes <stain@apache.org>
 
 ENV LANG C.UTF-8
 RUN set -eux; \
-    apk -U upgrade; \
-    apk add bash curl ca-certificates findutils coreutils gettext pwgen procps tini; \
-    rm -rf /var/cache/apk/*
+  apk -U upgrade; \
+  apk add bash curl ca-certificates findutils coreutils gettext pwgen procps tini; \
+  rm -rf /var/cache/apk/*
 
 
 # Update below according to https://jena.apache.org/download/ 
-# and checksum for apache-jena-fuseki-4.x.x.tar.gz.sha512
-ENV FUSEKI_SHA512 50d33937092e8120d57f503b6e96ef988894602aa060ff945ec3aecf0349b0b22250e158bb379d0300589653dc9d6f3e6eb2b9790b5125144108dd6f19dc41e6
-ENV FUSEKI_VERSION 5.1.0
+# and checksum for apache-jena-fuseki-6.x.x.tar.gz.sha512
+ENV FUSEKI_SHA512 ba65f5867d2d4741b2ed9e2af5a0d4fbb447909894ab2a0c6bc4dac8997f4fe339c87b13c48d45d054977769f0f8bf763ea346b1f7792d5cdc458041bd43a132
+ENV FUSEKI_VERSION 6.2.0
 ENV ASF_MIRROR https://www.apache.org/dyn/mirrors/mirrors.cgi?action=download&filename=
 ENV ASF_ARCHIVE https://archive.apache.org/dist/
 
@@ -52,17 +52,17 @@ WORKDIR /tmp
 RUN echo "$FUSEKI_SHA512  fuseki.tar.gz" > fuseki.tar.gz.sha512
 # Download/check/unpack/move in one go (to reduce image size)
 RUN     (curl --location --silent --show-error --fail --retry-connrefused --retry 3 --output fuseki.tar.gz ${ASF_MIRROR}jena/binaries/apache-jena-fuseki-$FUSEKI_VERSION.tar.gz || \
-    curl --fail --silent --show-error --retry-connrefused --retry 3 --output fuseki.tar.gz $ASF_ARCHIVE/jena/binaries/apache-jena-fuseki-$FUSEKI_VERSION.tar.gz) && \
-    sha512sum -c fuseki.tar.gz.sha512 && \
-    tar zxf fuseki.tar.gz && \
-    mv apache-jena-fuseki* $FUSEKI_HOME && \
-    rm fuseki.tar.gz* && \
-    cd $FUSEKI_HOME && rm -rf fuseki.war && chmod 755 fuseki-server
+  curl --fail --silent --show-error --retry-connrefused --retry 3 --output fuseki.tar.gz $ASF_ARCHIVE/jena/binaries/apache-jena-fuseki-$FUSEKI_VERSION.tar.gz) && \
+  sha512sum -c fuseki.tar.gz.sha512 && \
+  tar zxf fuseki.tar.gz && \
+  mv apache-jena-fuseki* $FUSEKI_HOME && \
+  rm fuseki.tar.gz* && \
+  cd $FUSEKI_HOME && rm -rf fuseki.war && chmod 755 fuseki-server
 
 # Test the install by testing it's ping resource. 20s sleep because Docker Hub.
 RUN  $FUSEKI_HOME/fuseki-server & \
-    sleep 20 && \
-    curl -sS --fail 'http://localhost:3030/$/ping' 
+  sleep 20 && \
+  curl -sS --fail 'http://localhost:3030/$/ping' 
 
 # No need to kill Fuseki as our shell will exit after curl
 
@@ -82,7 +82,7 @@ RUN chmod 755 $FUSEKI_HOME/load.sh $FUSEKI_HOME/tdbloader $FUSEKI_HOME/tdbloader
 
 # Create a fuseki user and group
 RUN addgroup -S fuseki && \
-    adduser -G fuseki -S -D -H fuseki
+  adduser -G fuseki -S -D -H fuseki
 
 # Where we start our server from
 WORKDIR $FUSEKI_HOME
@@ -90,8 +90,8 @@ RUN chown -R fuseki:fuseki $FUSEKI_HOME
 
 # Make sure we start with empty /fuseki
 RUN mkdir -p $FUSEKI_BASE; \
-    rm -rf $FUSEKI_BASE/*; \
-    chown -R fuseki:fuseki $FUSEKI_BASE
+  rm -rf $FUSEKI_BASE/*; \
+  chown -R fuseki:fuseki $FUSEKI_BASE
 VOLUME $FUSEKI_BASE
 
 EXPOSE 3030
@@ -99,4 +99,3 @@ USER fuseki
 
 ENTRYPOINT ["/sbin/tini", "--", "sh", "/docker-entrypoint.sh"]
 CMD ["/jena-fuseki/fuseki-server"]
-
